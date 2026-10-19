@@ -1,10 +1,14 @@
 package com.whiteeyes.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
@@ -14,9 +18,13 @@ class PasswordEncoderConfigTest {
     private static final String RAW_PASSWORD = "test-password-1!";
     private static final int BCRYPT_LENGTH = 60;
     private static final String BCRYPT_STRENGTH_10_PREFIX = "$2a$10$";
+    private static final int BCRYPT_MAX_BYTES = 72;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    PasswordEncoderConfigTest(@Autowired PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Test
     @DisplayName("FNC-C-005 같은 비밀번호도 저장값이 매번 다르다")
@@ -62,5 +70,47 @@ class PasswordEncoderConfigTest {
 
         assertThat(passwordEncoder.matches(RAW_PASSWORD, first)).isTrue();
         assertThat(passwordEncoder.matches(RAW_PASSWORD, second)).isTrue();
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 한글을 섞은 64자 비밀번호(72바이트 초과)도 오류 없이 저장하고 비교한다")
+    void encode_multibytePassword64Chars_noError() {
+        String password = "가".repeat(60) + "abc1";
+
+        assertThat(password.getBytes(StandardCharsets.UTF_8).length)
+                .isGreaterThan(BCRYPT_MAX_BYTES);
+        assertThatCode(() -> passwordEncoder.encode(password)).doesNotThrowAnyException();
+
+        String encoded = passwordEncoder.encode(password);
+        assertThat(encoded).hasSize(BCRYPT_LENGTH).startsWith(BCRYPT_STRENGTH_10_PREFIX);
+        assertThat(passwordEncoder.matches(password, encoded)).isTrue();
+        assertThat(passwordEncoder.matches("가".repeat(60) + "abc2", encoded)).isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 앞 72바이트가 같고 뒤만 다른 긴 비밀번호는 서로 다른 비밀번호로 구분한다")
+    void matches_longPasswordsDifferingAfter72Bytes_distinguished() {
+        String common = "a".repeat(BCRYPT_MAX_BYTES);
+        String encoded = passwordEncoder.encode(common + "X");
+
+        assertThat(passwordEncoder.matches(common + "X", encoded)).isTrue();
+        assertThat(passwordEncoder.matches(common + "Y", encoded)).isFalse();
+        assertThat(passwordEncoder.matches(common, encoded)).isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 72바이트 이하 비밀번호는 표준 BCryptPasswordEncoder(10)와 서로 호환된다")
+    void matches_upTo72Bytes_compatibleWithStandardBcrypt() {
+        PasswordEncoder standard = new BCryptPasswordEncoder(10);
+        String password = "a".repeat(BCRYPT_MAX_BYTES);
+
+        assertThat(passwordEncoder.matches(password, standard.encode(password))).isTrue();
+        assertThat(standard.matches(password, passwordEncoder.encode(password))).isTrue();
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 저장값 형식이 아닌 문자열과 비교하면 오류 없이 false를 돌려준다")
+    void matches_invalidStoredValue_false() {
+        assertThat(passwordEncoder.matches(RAW_PASSWORD, "not-a-bcrypt-value")).isFalse();
     }
 }
