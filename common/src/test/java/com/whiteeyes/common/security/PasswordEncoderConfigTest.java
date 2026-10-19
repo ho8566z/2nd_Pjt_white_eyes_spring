@@ -113,4 +113,63 @@ class PasswordEncoderConfigTest {
     void matches_invalidStoredValue_false() {
         assertThat(passwordEncoder.matches(RAW_PASSWORD, "not-a-bcrypt-value")).isFalse();
     }
+
+    @Test
+    @DisplayName("FNC-C-005 한글로 정확히 72바이트는 표준 bcrypt와 호환되고 73바이트는 오류 없이 처리한다")
+    void encode_multibyteBoundary72And73Bytes() {
+        PasswordEncoder standard = new BCryptPasswordEncoder(10);
+        String exactly72 = "가".repeat(24);
+        String over73 = exactly72 + "a";
+
+        assertThat(exactly72.getBytes(StandardCharsets.UTF_8)).hasSize(BCRYPT_MAX_BYTES);
+        assertThat(standard.matches(exactly72, passwordEncoder.encode(exactly72))).isTrue();
+
+        String encoded = passwordEncoder.encode(over73);
+        assertThat(passwordEncoder.matches(over73, encoded)).isTrue();
+        assertThat(passwordEncoder.matches(exactly72, encoded)).isFalse();
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 73~80바이트 구간에서도 뒤만 다른 비밀번호를 구분한다")
+    void matches_73To80Bytes_distinguished() {
+        for (int length = BCRYPT_MAX_BYTES + 1; length <= BCRYPT_MAX_BYTES + 8; length++) {
+            String password = "a".repeat(length - 1) + "X";
+            String encoded = passwordEncoder.encode(password);
+
+            assertThat(passwordEncoder.matches(password, encoded)).isTrue();
+            assertThat(passwordEncoder.matches("a".repeat(length - 1) + "Y", encoded)).isFalse();
+        }
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 빈 비밀번호는 표준 bcrypt와 같은 결과를 낸다")
+    void matches_emptyPassword_sameAsStandard() {
+        PasswordEncoder standard = new BCryptPasswordEncoder(10);
+
+        assertThat(passwordEncoder.matches("", passwordEncoder.encode("")))
+                .isEqualTo(standard.matches("", standard.encode("")));
+        assertThat(passwordEncoder.matches("", standard.encode("")))
+                .isEqualTo(standard.matches("", standard.encode("")));
+    }
+
+    @Test
+    @DisplayName("FNC-C-005 null 비밀번호는 표준 bcrypt와 같은 방식으로 처리한다")
+    void encodeAndMatches_nullPassword_sameAsStandard() {
+        PasswordEncoder standard = new BCryptPasswordEncoder(10);
+        String encoded = standard.encode(RAW_PASSWORD);
+
+        assertThat(throwsOf(() -> passwordEncoder.encode(null)))
+                .isEqualTo(throwsOf(() -> standard.encode(null)));
+        assertThat(throwsOf(() -> passwordEncoder.matches(null, encoded)))
+                .isEqualTo(throwsOf(() -> standard.matches(null, encoded)));
+    }
+
+    private static Class<? extends Throwable> throwsOf(Runnable action) {
+        try {
+            action.run();
+            return null;
+        } catch (RuntimeException e) {
+            return e.getClass();
+        }
+    }
 }
