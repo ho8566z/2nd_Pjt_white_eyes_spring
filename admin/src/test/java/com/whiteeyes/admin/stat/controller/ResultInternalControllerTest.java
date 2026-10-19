@@ -26,7 +26,6 @@ import com.whiteeyes.admin.stat.dto.ResultReceiveRequest;
 import com.whiteeyes.admin.stat.dto.ResultReceiveRequest.DirectionCount;
 import com.whiteeyes.admin.stat.service.ResultReceiveService;
 
-/** 분석 결과 수신(FNC-A-024) */
 @ExtendWith(MockitoExtension.class)
 class ResultInternalControllerTest {
 
