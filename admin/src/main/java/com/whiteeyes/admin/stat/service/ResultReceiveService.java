@@ -17,7 +17,6 @@ import com.whiteeyes.admin.camera.service.CameraQueryService;
 import com.whiteeyes.admin.stat.dto.ResultReceiveRequest;
 import com.whiteeyes.admin.stat.dto.ResultReceiveRequest.DirectionCount;
 
-/** 분석 결과 수신(FNC-A-024) */
 @Service
 public class ResultReceiveService {
 
