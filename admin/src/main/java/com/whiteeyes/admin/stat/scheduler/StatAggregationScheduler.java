@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import com.whiteeyes.admin.stat.service.MinuteStatService;
 
-/** 1분 통계 저장(FNC-A-028) */
 @Component
 public class StatAggregationScheduler {
 
