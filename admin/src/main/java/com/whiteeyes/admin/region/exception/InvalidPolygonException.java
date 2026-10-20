@@ -1,15 +1,12 @@
 package com.whiteeyes.admin.region.exception;
 
-import com.whiteeyes.common.exception.BusinessException;
-import com.whiteeyes.common.exception.ErrorCode;
-
-public class InvalidPolygonException extends BusinessException {
+public class InvalidPolygonException extends RuntimeException {
 
     public InvalidPolygonException(String message) {
-        super(ErrorCode.INVALID_POLYGON, message);
+        super(message);
     }
 
     public InvalidPolygonException(String message, Throwable cause) {
-        super(ErrorCode.INVALID_POLYGON, message, cause);
+        super(message, cause);
     }
 }
