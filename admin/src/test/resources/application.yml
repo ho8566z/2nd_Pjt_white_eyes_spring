@@ -5,11 +5,5 @@ spring:
     password:
   jpa:
     hibernate:
-      # TODO(#11): camera 마이그레이션이 생기면 지우고 validate로 되돌린다
+      # TODO: user_account 마이그레이션이 생기면 지우고 validate로 되돌린다
       ddl-auto: create-drop
-
-analyzer:
-  base-url: http://localhost:5000
-
-internal-api:
-  token: test-internal-token
