@@ -1,9 +1,10 @@
 package com.whiteeyes.common.zone.repository;
 
+import com.whiteeyes.common.zone.entity.Zone;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.whiteeyes.common.zone.entity.Zone;
-
-// TODO(#10): 구역 등록(FNC-A-014)에서 정식으로 만든다. FNC-A-028 구현을 위해 먼저 둔 임시 코드
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
+
+    /** 같은 동의 삭제되지 않은 구역 중 이름이 같은 것이 있는지 본다(FNC-A-014 처리 순서 2). */
+    boolean existsByDongIdAndNameAndDeletedAtIsNull(Long dongId, String name);
 }
