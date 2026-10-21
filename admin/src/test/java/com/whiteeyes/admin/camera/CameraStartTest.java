@@ -5,9 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.whiteeyes.admin.security.AdminTestUserConfig;
 import com.whiteeyes.admin.region.service.RegionLoadService;
 import com.whiteeyes.admin.region.service.ZoneRegisterService;
+import com.whiteeyes.admin.support.AdminTestLogin;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -32,7 +31,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** FNC-A-020 캠 가동. 분석 서버는 같은 JVM에 띄운 가짜 HTTP 서버로 대신한다. */
 // 운영 설정(open-in-view: false)과 같게 맞춘다. 켜 두면 요청 하나가 영속성 컨텍스트를 공유해 단계별 커밋을 검증할 수 없다
-@Import(AdminTestUserConfig.class)
 @SpringBootTest(properties = "spring.jpa.open-in-view=false")
 @AutoConfigureMockMvc
 class CameraStartTest {
@@ -73,6 +71,7 @@ class CameraStartTest {
 
     @BeforeEach
     void prepareZone() {
+        AdminTestLogin.loginForDirectCalls();
         ANALYZER.reset();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
@@ -87,6 +86,7 @@ class CameraStartTest {
     // camera → zone → region 순으로 외래키가 걸려 있어, 남겨 두면 다른 테스트가 region을 지우다 실패한다
     @AfterEach
     void clearCamerasAndZones() {
+        AdminTestLogin.clear();
         jdbcTemplate.update("DELETE FROM camera");
         jdbcTemplate.update("DELETE FROM zone");
     }
@@ -314,7 +314,7 @@ class CameraStartTest {
     }
 
     private ResultActions start(long cameraId) throws Exception {
-        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/start", cameraId));
+        return mockMvc.perform(post("/api/v1/manage/cameras/{id}/start", cameraId).with(AdminTestLogin.admin()));
     }
 
     // 구역당 캠 1대 규칙 때문에 한 번에 한 대만 만든다(테스트 안에서 반복할 때는 먼저 지운다)
